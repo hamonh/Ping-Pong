@@ -1,0 +1,202 @@
+let ball;
+let playerPaddleY;
+let computerPaddleY;
+let paddleWidth = 10;
+let paddleHeight = 100;
+let playerScore = 0;
+let computerScore = 0;
+let gameState = "menu";
+let winner = "";
+let maxScore = 5;
+let difficulty = "Médio";
+let soundOn = true;
+
+let difficultySettings = {
+  "Fácil":   { ballSpeed: 3, aiSpeed: 2 },
+  "Médio":   { ballSpeed: 5, aiSpeed: 4 },
+  "Difícil": { ballSpeed: 8, aiSpeed: 6 }
+};
+let currentSettings;
+
+function setup() {
+  createCanvas(800, 400);
+  textAlign(CENTER, CENTER);
+  textSize(24);
+  resetGame();
+}
+
+function draw() {
+  background(0);
+  fill(255);
+
+  if (gameState === "menu") {
+    drawMenu();
+  } else if (gameState === "playing") {
+    drawGame();
+  } else if (gameState === "gameOver") {
+    drawGameOver();
+  }
+}
+
+function drawMenu() {
+  textSize(32);
+  text("🏓 Jogo de Ping-Pong", width / 2, height / 8);
+
+  textSize(20);
+  text("Escolha a dificuldade e o som:", width / 2, height / 6 + 40);
+
+  const yStart = height / 2 - 80;
+  const bw = 100;
+  const bh = 40;
+  const spacing = 120;
+  let centerX = width / 2;
+
+  // Dificuldade
+  drawButton(centerX - spacing, yStart, bw, bh, "Fácil", difficulty === "Fácil");
+  drawButton(centerX,           yStart, bw, bh, "Médio", difficulty === "Médio");
+  drawButton(centerX + spacing, yStart, bw, bh, "Difícil", difficulty === "Difícil");
+
+  // Som
+  drawButton(centerX - 75, yStart + 70, 150, 40, soundOn ? "Som: ON" : "Som: OFF", false);
+
+  // Jogar
+  drawButton(centerX - 75, yStart + 140, 150, 50, "JOGAR", false);
+}
+
+function drawGameOver() {
+  textSize(32);
+  text(`🏆 ${winner} venceu!`, width / 2, height / 3);
+  textSize(20);
+  text("Clique para voltar ao menu", width / 2, height / 2);
+}
+
+function drawGame() {
+  textSize(28);
+  text(`${playerScore}   :   ${computerScore}`, width / 2, 30);
+
+  ellipse(ball.x, ball.y, ball.r * 2);
+  ball.x += ball.vx;
+  ball.y += ball.vy;
+
+  if (ball.y - ball.r <= 0 || ball.y + ball.r >= height) {
+    ball.vy *= -1;
+    playSound("bounce");
+  }
+
+  if (
+    ball.x - ball.r <= 30 &&
+    ball.y >= playerPaddleY &&
+    ball.y <= playerPaddleY + paddleHeight
+  ) {
+    ball.vx *= -1.05;
+    ball.vy *= 1.05;
+    ball.x = 30 + ball.r;
+    playSound("hit");
+  }
+
+  if (
+    ball.x + ball.r >= width - 30 &&
+    ball.y >= computerPaddleY &&
+    ball.y <= computerPaddleY + paddleHeight
+  ) {
+    ball.vx *= -1.05;
+    ball.vy *= 1.05;
+    ball.x = width - 30 - ball.r;
+    playSound("hit");
+  }
+
+  if (ball.x - ball.r <= 0) {
+    computerScore++;
+    checkWin();
+    resetBall();
+  }
+
+  if (ball.x + ball.r >= width) {
+    playerScore++;
+    checkWin();
+    resetBall();
+  }
+
+  playerPaddleY = constrain(mouseY - paddleHeight / 2, 0, height - paddleHeight);
+  rect(20, playerPaddleY, paddleWidth, paddleHeight);
+
+  let center = computerPaddleY + paddleHeight / 2;
+  let aiSpeed = currentSettings.aiSpeed;
+  if (center < ball.y - 10) {
+    computerPaddleY += aiSpeed;
+  } else if (center > ball.y + 10) {
+    computerPaddleY -= aiSpeed;
+  }
+  computerPaddleY = constrain(computerPaddleY, 0, height - paddleHeight);
+  rect(width - 30, computerPaddleY, paddleWidth, paddleHeight);
+}
+
+function drawButton(x, y, w, h, label, selected) {
+  stroke(255);
+  fill(selected ? color(0, 150, 255) : 50);
+  rect(x, y, w, h, 8);
+  fill(255);
+  noStroke();
+  text(label, x + w / 2, y + h / 2);
+}
+
+function mousePressed() {
+  const yStart = height / 2 - 80;
+
+  if (gameState === "menu") {
+    if (mouseInRect(width / 2 - 120, yStart, 100, 40)) difficulty = "Fácil";
+    if (mouseInRect(width / 2, yStart, 100, 40)) difficulty = "Médio";
+    if (mouseInRect(width / 2 + 120, yStart, 100, 40)) difficulty = "Difícil";
+
+    if (mouseInRect(width / 2 - 75, yStart + 70, 150, 40)) soundOn = !soundOn;
+
+    if (mouseInRect(width / 2 - 75, yStart + 140, 150, 50)) {
+      currentSettings = difficultySettings[difficulty];
+      gameState = "playing";
+      resetGame();
+    }
+  } else if (gameState === "gameOver") {
+    gameState = "menu";
+  }
+}
+
+function mouseInRect(x, y, w, h) {
+  return mouseX > x && mouseX < x + w && mouseY > y && mouseY < y + h;
+}
+
+function resetBall() {
+  let speed = currentSettings ? currentSettings.ballSpeed : 5;
+  ball = {
+    x: width / 2,
+    y: height / 2,
+    r: 10,
+    vx: random([-1, 1]) * speed,
+    vy: random(-1, 1) * speed
+  };
+}
+
+function resetGame() {
+  playerScore = 0;
+  computerScore = 0;
+  playerPaddleY = height / 2 - paddleHeight / 2;
+  computerPaddleY = height / 2 - paddleHeight / 2;
+  currentSettings = difficultySettings[difficulty];
+  resetBall();
+}
+
+function checkWin() {
+  if (playerScore >= maxScore) {
+    winner = "Jogador";
+    gameState = "gameOver";
+    playSound("win");
+  } else if (computerScore >= maxScore) {
+    winner = "Computador";
+    gameState = "gameOver";
+    playSound("lose");
+  }
+}
+
+function playSound(type) {
+  if (!soundOn) return;
+  console.log("Som:", type);
+}
