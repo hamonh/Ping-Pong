@@ -2,6 +2,9 @@
 Jogo de Ping-Pong feito para o P5js
 
 Como testar:
+
+Copie o código que está no arquivo Ping-Pong p5js
+
 Acesse https://editor.p5js.org
 
 Cole o código no editor
